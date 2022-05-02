@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./OnlyOwner.sol";
-import "./CoinflipView.sol";
-import "./interfaces/IERC20.sol";
-import "./interfaces/IUniswapV2Factory.sol";
-import "./interfaces/IUniswapV2Pair.sol";
-import "./interfaces/IUniswapV2Router.sol";
-import "./interfaces/IWETH.sol";
+import "../OnlyOwner.sol";
+import "../CoinflipView.sol";
+import "../interfaces/IERC20.sol";
+import "../interfaces/IUniswapV2Factory.sol";
+import "../interfaces/IUniswapV2Pair.sol";
+import "../interfaces/IUniswapV2Router.sol";
+import "../interfaces/IWETH.sol";
 
 
 contract Uniswap {

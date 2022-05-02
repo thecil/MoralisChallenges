@@ -3,6 +3,7 @@ import { parseEther, formatEther } from 'ethers/lib/utils';
 import { expect } from 'chai';
 import { BigNumber } from 'ethers';
 import { assert } from 'console';
+import { deployMockToken } from '../../shared/mocks';
 
 export const shouldDepositERC20 = (): void => {
 
