@@ -129,30 +129,31 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
     ) 
         private 
     {
-        //next we need to allow the uniswapv2 router to spend the token we just sent to this contract
-        //by calling IERC20 approve you allow the uniswap contract to spend the tokens in this contract 
-        // IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
-        // IERC20(_tokenIn).approve(UNISWAP_V2_ROUTER, _amountIn);
+        // next we need to allow the uniswapv2 router to spend the token we just sent to this contract
+       // by calling IERC20 approve you allow the uniswap contract to spend the tokens in this contract 
+        uint tokenIn = tokenMapping[ticker].tokenAddress;
+        uint tokenOut = LINK_ADDRESS;
+        IERC20(tokenMapping[ticker].address).transferFrom(msg.sender, address(this), _amountIn);
+        IERC20(_tokenIn).approve(UNISWAP_V2_ROUTER, _amountIn);
 
-        // //path is an array of addresses.
-        // //this path array will have 3 addresses [tokenIn, WETH, tokenOut]
-        // //the if statement below takes into account if token in or token out is WETH.  then the path is only 2 addresses
-        // address[] memory path;
-        // if (_tokenIn == WETH || _tokenOut == WETH) {
-        //     path = new address[](2);
-        //     path[0] = _tokenIn;
-        //     path[1] = _tokenOut;
-        // } else {
-        //     path = new address[](3);
-        //     path[0] = _tokenIn;
-        //     path[1] = WETH;
-        //     path[2] = _tokenOut;
-        // }
-        address[] memory amounts = new address[](2);
-        (amounts[0], amounts[1]) = (tokenMapping[ticker].tokenAddress, LINK_ADDRESS);
+        //path is an array of addresses.
+        //this path array will have 3 addresses [tokenIn, WETH, tokenOut]
+        //the if statement below takes into account if token in or token out is WETH.  then the path is only 2 addresses
+        address[] memory path;
+        if (tokenIn == WETH || tokenOut == WETH) {
+            path = new address[](2);
+            path[0] = tokenIn;
+            path[1] = tokenOut;
+        } else {
+            path = new address[](3);
+            path[0] = tokenIn;
+            path[1] = WETH;
+            path[2] = tokenOut;
+        }
+        
         uint[] memory amountsOut = 
             IUniswapV2Router(UNISWAP_V2_ROUTER)
-                .getAmountsOut(fee, amounts);
+                .getAmountsOut(fee, path);
 
         uint minAmount = amountsOut[1];
 
@@ -160,7 +161,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
             .swapExactTokensForTokens(
                 fee,
                 minAmount, 
-                amounts, 
+                path, 
                 address(this), 
                 block.timestamp
             );

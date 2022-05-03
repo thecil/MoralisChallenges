@@ -44,6 +44,7 @@ contract CoinFlipState {
 
     modifier tokenExists(string memory _ticker) {
         require(tokenMapping[_ticker].tokenAddress != address(0));
+        
         _;
     }
 
