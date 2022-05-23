@@ -2,14 +2,17 @@
 pragma solidity ^0.8.4;
 pragma experimental ABIEncoderV2;
 
+// chainlink vrf consumer
 import "@chainlink/contracts/src/v0.8/VRFConsumerBase.sol";
 import "./OnlyOwner.sol";
 import "./CoinflipView.sol";
+// uniswap router
 import "./interfaces/IUniswapV2Router.sol";
 import "./interfaces/IERC20.sol";
 
 contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
 
+    // initialize contract along with chainlink vrfConsumer parameters, check constructor of VRFConsumerBase.sol
     constructor() VRFConsumerBase
     (
         0xdD3782915140c8f3b190B5D67eAc6dc5760C46E9, // VRF Coordinator
@@ -19,7 +22,9 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         fee = 0.1 * 10 ** 18; // 0.1 LINK (Varies by network)
     }
 
-    /////////////////////Coinflip///////////////////////
+    ///////////////////// Coinflip PUBLIC FUNCTIONS ///////////////////////
+
+    // set a new bet using ETH
     function setETHBet(
         uint _betType, 
         string memory ticker
@@ -28,24 +33,25 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         betConditions
         payable  
     {
-        //set bet type 1==4X 0==2X
+        //set bet type 1 == 4x || 0 == 2x
         if(_betType == 1) {
             betType[msg.sender] = 1;
         }else {
             betType[msg.sender] = 0;
         }
         //define fee to be paid for chainlink oracle
-        //subtract this from admin balance
         uint fee = msg.value * 1000 / 10000;
+        //subtract this from admin balance
         adminBalances["ETH"] += msg.value - fee;
 
         //call _createBet to initilase player bet and pay oracle fee
         _createBet(msg.value, ticker, fee); 
         flipCoin();
-        emit betInitialized(msg.sender, player[msg.sender].betAmount, _id); 
+        emit BetInitialized(msg.sender, player[msg.sender].betAmount, _id); 
         _id++;
     }
-
+    
+    // set a new bet using ERC20
     function setERC20Bet(
         uint _betType, 
         uint amount, 
@@ -64,8 +70,8 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         }
 
         //define fee to be paid for chainlink oracle
-        //subtract this from admin balance
         uint fee = amount * 1000 / 10000;
+        //subtract this from admin balance
         adminBalances[ticker] += amount - fee;
         
         //transfer token from users wallet to contract
@@ -75,9 +81,10 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         //call _createBet to initilase player bet and pay oracle fee
         _createBet(amount, ticker, fee); 
         flipCoin();
-        emit betInitialized(msg.sender, player[msg.sender].betAmount, _id);
-        _id; 
+        emit BetInitialized(msg.sender, player[msg.sender].betAmount, _id);
+        _id++; 
     }
+
 
     function _createBet(
         uint amount,
@@ -173,7 +180,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         //in fullfill randomness callback
         bytes32 id = getRandom();
         querySender[id] = msg.sender;
-        emit coinFlipped(msg.sender, _id, isActive[msg.sender]);
+        emit CoinFlipped(msg.sender, _id, isActive[msg.sender]);
     }
 
     function getRandom() private returns (bytes32 requestId) {
@@ -237,11 +244,11 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
     ) 
         private 
     {
-        //only transfer winning sif randomResult is less that threshold
+        // only transfer winning if randomResult is less that threshold
         if (RandomResult >= threshold) {
             player[playerAddress].hasWon = true;
 
-            //if tickr is ETH do payable transfer else do ERC20 Transfer
+            // if ticker is ETH do payable transfer else do ERC20 Transfer
             if(keccak256(bytes(ticker)) == keccak256(bytes("ETH"))) {
                 payable(playerAddress).transfer(multiplier * betAmount);
             } else {
@@ -249,13 +256,15 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
                     .transfer(playerAddress, multiplier * betAmount);
             }
 
-            //update admin abalnces
+            // update admin abalnces
             adminBalances[ticker] -= multiplier * betAmount;
         }
     }
 
 
     /////////////////////Addmin/////////////////////
+
+    // contract creator add new bet token to contract
     function addToken(
         string memory _ticker, 
         address tokenAddress
@@ -278,10 +287,10 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         //init token struct and push to token list
         tokenMapping[_ticker] = Token(_ticker, tokenAddress);
         tokenList.push(_ticker);
-        emit tokenAdded(_ticker, tokenAddress);
+        emit TokenAdded(_ticker, tokenAddress);
     }
 
-    //this function lets the admin or contratc creator withdraw the entire contratc balance
+    // contratc creator withdraw the entire contratc balance (ETH or ERC20, based on ticker)
     function withdraw(
         uint amount, 
         string calldata ticker
@@ -294,11 +303,11 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         payable(msg.sender).transfer(address(this).balance);
         else IERC20(tokenMapping[ticker].tokenAddress).transfer(msg.sender, amount);
         adminBalances[ticker] -= amount;
-        emit withdrawMade(msg.sender, address(this).balance);
+        emit WithdrawMade(msg.sender, address(this).balance);
 
     }
 
-    //this function lets the contract creator deposit funds into the contract
+    // contract creator deposit ETH into the contract
     function deposit() 
         public 
         payable 
@@ -307,10 +316,11 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
     {
         require(msg.value > 0, "need to deposit more than zero");
         adminBalances["ETH"] += msg.value;
-        emit depositMade(msg.sender, msg.value);
+        emit DepositMade(msg.sender, msg.value);
         _success = true;
     }
 
+    // contract creator deposit ERC20 into the contract
     function depositERC20Token(
          uint amount, 
          string memory ticker
@@ -322,9 +332,10 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         require(tokenMapping[ticker].tokenAddress != address(0));
         IERC20(tokenMapping[ticker].tokenAddress).transferFrom(msg.sender, address(this), amount);
         adminBalances[ticker] += amount;  
-        emit depositMade(msg.sender, amount);
+        emit DepositMade(msg.sender, amount);
     }
 
+    // contract creator withdraw link tokens
     function withdrawLink() public isOwner {
         IERC20 _interface = IERC20(LINK_ADDRESS);
         uint256 balanceOf = _interface.balanceOf(address(this));
