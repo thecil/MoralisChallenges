@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Fixture, MockContract } from "ethereum-waffle";
 import { ContractFactory, Wallet } from "ethers";
 import { ethers } from "hardhat";

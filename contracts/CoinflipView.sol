@@ -14,6 +14,8 @@ import "./CoinflipState.sol";
  *
  */
 contract CoinFlipView is CoinFlipState {
+
+    //// Contracts Addresses ////
     address public constant LINK_ADDRESS =
         0xa36085F69e2889c224210F603D836748e7dC0088;
     address public constant UNISWAP_V2_ROUTER =
@@ -27,16 +29,14 @@ contract CoinFlipView is CoinFlipState {
     bytes32 public keyHash;
     uint256 public fee;
     // simple counter for each bet.
-    uint256 _id = 0;
+    uint256 internal _id = 0;
     // array of accepted tokens for bet, used on addToken()
     string[] public tokenList;
 
     //// NOT USED VARs ////
     uint256 private contractBalance;
-    /**
-     * @dev used at fulfillRandomness() to imitate randomness
-     */
-    uint256 public RandomResult;
+    // used at fulfillRandomness() to imitate randomness
+    uint256 public randomResult;
 
     /**
      * @dev Fired in deposit() and depositERC20Token()
@@ -100,7 +100,7 @@ contract CoinFlipView is CoinFlipState {
 
     // returns a random number for imitate result
     function getRandomResult() external view returns (uint256) {
-        return RandomResult;
+        return randomResult;
     }
 
     /**

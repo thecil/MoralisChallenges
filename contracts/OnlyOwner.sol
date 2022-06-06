@@ -26,13 +26,13 @@ contract Owner {
     /**
      * @dev Set contract deployer as owner
      */
-    constructor() public {
+    constructor() {
         owner = msg.sender; // 'msg.sender' is sender of current call, contract deployer for a constructor
         emit OwnerSet(address(0), owner);
     }
 
     /**
-     * @dev Change owner
+     * @notice Change owner
      * @param newOwner address of new owner
      */
     function changeOwner(address newOwner) public isOwner {
@@ -41,7 +41,7 @@ contract Owner {
     }
 
     /**
-     * @dev Return owner address
+     * @notice Return owner address
      * @return address of owner
      */
     function getOwner() external view returns (address) {
