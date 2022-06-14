@@ -104,7 +104,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
     }
 
     /**
-     * @dev initialize a new bet for player, swap ticker on uniswap for chainlink fee
+     * @dev initialize a new bet for player, swap ticker on uniswap to pay chainlink fee
      *
      * @param amount bet amount
      * @param ticker token symbol
@@ -172,16 +172,18 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
      *
      */
     function swapTokenForLink(uint256 fee, string memory ticker) private {
+        require(IERC20(tokenIn).allowance(UNISWAP_V2_ROUTER, ) > fee, "Allowance not enough");
         // next we need to allow the uniswapv2 router to spend the token we just sent to this contract
         // by calling IERC20 approve you allow the uniswap contract to spend the tokens in this contract
-        uint256 tokenIn = tokenMapping[ticker].tokenAddress;
-        uint256 tokenOut = LINK_ADDRESS;
-        IERC20(tokenMapping[ticker].tokenAddress).transferFrom(
-            msg.sender,
-            address(this),
-            _amountIn
-        );
-        IERC20(_tokenIn).approve(UNISWAP_V2_ROUTER, _amountIn);
+        address tokenIn = tokenMapping[ticker].tokenAddress;
+        address tokenOut = LINK_ADDRESS;
+
+        // IERC20(tokenIn).transferFrom(
+        //     msg.sender,
+        //     address(this),
+        //     _amountIn
+        // );
+        // IERC20(tokenIn).approve(UNISWAP_V2_ROUTER, _amountIn);
 
         //path is an array of addresses.
         //this path array will have 3 addresses [tokenIn, WETH, tokenOut]
@@ -213,17 +215,13 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
     }
 
     /**
-     * @dev requestRandomness from chainlink, fee calculation included
+     * @dev get random number from oracle and use it as request id,
+     * to associate the players token and address for use
      *
-     * @return requestId result from chainlink randomness
-     * Requirements:
-     * - Contract must have enough balance to pay chainlink fee
+     * Emits a { CoinFlipped } event.
      *
      */
     function flipCoin() private {
-        //get random number from oracle and use the request id
-        //to associate the plauers token and address for use
-        //in fullfill randomness callback
         bytes32 id = getRandom();
         querySender[id] = msg.sender;
         emit CoinFlipped(msg.sender, _id, isActive[msg.sender]);
@@ -245,6 +243,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         return requestRandomness(keyHash, fee);
     }
 
+    // triggered by 'requestRandomness' (VRFConsumerBase), we overrided to apply our contract logic
     function fulfillRandomness(bytes32 requestId, uint256 randomness)
         internal
         override
@@ -258,11 +257,12 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
 
         //decide the randomess limit based on if BET==0 OR BET==1
         if (betType[playerAddress] == 0) {
-            RandomResult = randomness % 100;
+            // WARNING!!!!, 'randomResult' must be added to player mapping to make it private for each bet
+            randomResult = randomness % 100;
             threshold = 45;
             multiplier = 2;
         } else {
-            RandomResult == randomness % 400;
+            randomResult == randomness % 400;
             threshold = 90;
             multiplier = 4;
         }
@@ -273,10 +273,12 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         //set isActive to false so player can make new bets and delete
         //player bet instamce
         isActive[playerAddress] = false;
+        // WARNINIG, mapping value must be saved before cuz next step will delete the mapping values
+        bool _oldValue = player[playerAddress].hasWon;
         delete (player[playerAddress]);
         emit FlipResult(
             playerAddress,
-            player[playerAddress].hasWon,
+            _oldValue,
             betAmount * 2
         );
     }
@@ -302,7 +304,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         uint256 multiplier
     ) private {
         // only transfer winning if randomResult is less that threshold
-        if (RandomResult >= threshold) {
+        if (randomResult >= threshold) {
             player[playerAddress].hasWon = true;
 
             // if ticker is ETH do payable transfer else do ERC20 Transfer
@@ -390,7 +392,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
     /**
      * @notice deposit ETH into the contract
      *
-     * @return _sucess if executed properly
+     * @return _success if executed properly
      * Requirements:
      * - Only Contract Owner
      * - Contract must have enough balance to withdraw requested amount.
@@ -400,7 +402,7 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
      */
     function deposit() public payable isOwner returns (bool _success) {
         require(msg.value > 0, "need to deposit more than zero");
-        uint256 memory _oldBalance = adminBalances["ETH"];
+        uint256 _oldBalance = adminBalances["ETH"];
         adminBalances["ETH"] += msg.value;
         emit DepositMade(msg.sender, msg.value);
         // validate that balance has increased properly, then return _success
@@ -426,9 +428,9 @@ contract CoinFlip is VRFConsumerBase, Owner, CoinFlipView {
         isOwner
         tokenExists(ticker)
     {
-        uint256 memory _oldBalance = adminBalances[ticker];
+        uint256 _oldBalance = adminBalances[ticker];
         // ERC20 balanceOf(contract)
-        uint256 memory _oldBalanceOf = IERC20(tokenMapping[ticker].tokenAddress)
+        uint256 _oldBalanceOf = IERC20(tokenMapping[ticker].tokenAddress)
             .balanceOf(address(this));
         IERC20(tokenMapping[ticker].tokenAddress).transferFrom(
             msg.sender,

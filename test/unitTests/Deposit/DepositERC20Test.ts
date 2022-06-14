@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Wallet } from 'ethers';
 import { parseEther, formatEther } from 'ethers/lib/utils';
 import { expect } from 'chai';
@@ -39,8 +40,8 @@ export const shouldDepositERC20 = (): void => {
       });
 
         it(`owners contract balances should update correctly after deposit funds`, async function () {
-            let balance = await this.signers.alice.getBalance()
-            const formatedBalance = formatEther(balance.toString())
+            // let balance = await this.signers.alice.getBalance()
+            // const formatedBalance = formatEther(balance.toString())
             const amount: BigNumber = parseEther(`1`);
     
             const BalanceBefore = await this.coinflip.getPlayerBalance("ETH")
@@ -51,10 +52,10 @@ export const shouldDepositERC20 = (): void => {
                     { value: amount})
             
             const BalanceAfter = await this.coinflip.getPlayerBalance("ETH")
-
+                // console.log('balances', BalanceAfter.toBigInt(), BalanceBefore.add(amount).toBigInt(), amount, typeof(BalanceAfter), typeof(BalanceBefore))
             assert(
-                BalanceBefore.toBigInt() == 
-                BalanceAfter.add(amount).toBigInt(), 
+                BalanceAfter.toBigInt() ===
+                BalanceBefore.add(amount).toBigInt(), 
                 "balances do not equal"
             );    
         });
@@ -67,12 +68,12 @@ export const shouldDepositERC20 = (): void => {
                 .connect(this.signers.deployer)
                 .deposit(
                     { value: amount})
-            ).to.emit(this.coinflip, `depositMade`) 
+            ).to.emit(this.coinflip, `DepositMade`) 
         });
 
         it(`owners  wallet balances should update correctly after deposit funds`, async function () {
-            let balanceBefore: BigNumber = await this.signers.alice.getBalance()
-            const formatedBalanceBefore = formatEther(balanceBefore)
+            const balanceBefore: BigNumber = await this.signers.alice.getBalance()
+            // const formatedBalanceBefore = formatEther(balanceBefore)
             const amount: BigNumber = parseEther(`1`);
     
             await this.coinflip
@@ -80,12 +81,12 @@ export const shouldDepositERC20 = (): void => {
                 .deposit(
                     { value: amount})
             
-            let balanceAfter: BigNumber = await this.signers.alice.getBalance()
-            const formatedBalanceAfter = formatEther(balanceAfter)
-            
+            const balanceAfter: BigNumber = await this.signers.alice.getBalance()
+            // const formatedBalanceAfter = formatEther(balanceAfter)
+            // console.log('wallet balances', formatedBalanceAfter, formatedBalanceBefore, typeof(formatedBalanceAfter), typeof(formatedBalanceBefore))
             assert(
-                Number(formatedBalanceBefore) == 
-                Number(formatedBalanceAfter) + Number(amount), 
+                balanceAfter.toBigInt() === 
+                balanceBefore.add(amount).toBigInt(), 
                 "wallet balances do not equal"
             ); 
         });

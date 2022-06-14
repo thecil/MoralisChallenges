@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { MockContract } from "ethereum-waffle";
 import { Signer } from "ethers";
 import { formatBytes32String } from "ethers/lib/utils";
